@@ -6,6 +6,10 @@ PRN = 0b01000111
 LDI = 0b10000010
 HLT = 0b00000001
 MUL = 0b10100010
+CMP = 0b10100111
+JMP = 0b01010100
+JNE = 0b01010110
+JEQ = 0b01010101
 
 
 class CPU:
@@ -16,6 +20,9 @@ class CPU:
         self.ram = [0] * 255
         self.reg = [0] * 8
         self.pc = 0
+        self.E = 0
+        self.L = 0
+        self.G = 0
 
     def ram_read(self, read_address):
         return self.ram[read_address]
@@ -70,6 +77,16 @@ class CPU:
         # elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            # Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwise.
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.E = 1
+            # Less-than: during a CMP, set to 1 if registerA is less than registerB, zero otherwise.
+            elif self.reg[reg_a] <= self.reg[reg_b]:
+                self.L = 1
+            else:
+                #  Greater-than: during a CMP, set to 1 if registerA is greater than registerB, zero otherwise.
+                self.G = 1
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -112,3 +129,28 @@ class CPU:
             elif ir == MUL:
                 self.alu("MUL", op_A, op_B)
                 self.pc += 3
+            
+            
+            elif ir == JMP:
+            #    Set the PC to the address stored in the given register. 
+                self.pc = self.reg[op_A]
+
+            elif ir == CMP:
+                
+                self.alu("CMP", op_A, op_B)
+                self.pc += 3
+
+            elif ir == JEQ:
+                # If equal flag is set (true), jump to the address stored in the given register.
+                if self.E == 1:
+                    self.pc = self.reg[op_A]
+                else:
+                    self.pc += 2
+
+            elif ir == JNE:
+                # If E flag is clear (false, 0), jump to the address stored in the given register.
+                if self.E == 0:
+                    self.pc = self.reg[op_A]
+                else:
+                    self.pc += 2
+            
