@@ -5,6 +5,7 @@ import sys
 PRN = 0b01000111
 LDI = 0b10000010
 HLT = 0b00000001
+MUL = 0b10100010
 
 
 class CPU:
@@ -22,25 +23,43 @@ class CPU:
     def ram_write(self, write_value, write_address):
         self.ram[write_address] = write_value
 
-    def load(self):
+    def load(self, file):
         """Load a program into memory."""
 
         address = 0
-
+        program = []
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
+        
+        try:
+            with open(file) as f:
+                for line in f:
+                    comment_split = line.split("#")
+                    num = comment_split[0].strip()
+                    if num == '':
+                        continue
+                    val = int(num, 2)
+                    program.append(f"{val:08b}")
+
+        except FileNotFoundError:
+            print(f"{sys.argv[0]}: {sys.argv[1]} not found")
+            sys.exit(2)
+
+        print(program)
 
         for instruction in program:
-            self.ram[address] = instruction
+            instruction = '0b' + instruction
+            # self.ram[address] = instruction
+            self.ram[address] = int(instruction, 2)
             address += 1
 
     def alu(self, op, reg_a, reg_b):
@@ -49,6 +68,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -88,3 +109,6 @@ class CPU:
             elif ir == HLT:
                 break
                 sys.exit(1)
+            elif ir == MUL:
+                self.alu("MUL", op_A, op_B)
+                self.pc += 3
